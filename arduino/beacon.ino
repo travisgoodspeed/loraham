@@ -71,18 +71,7 @@ float voltage(){
   return measuredvbat;
 }
 
-void setup() 
-{
-  pinMode(LED, OUTPUT);     
-  pinMode(RFM95_RST, OUTPUT);
-  digitalWrite(RFM95_RST, HIGH);
-
-  delay(1000);
-  //while (!Serial);
-  Serial.begin(9600);
-  Serial.setTimeout(10);
-  delay(100);
- 
+void radioon(){
   Serial.println("Feather LoRa RX Test!");
   
   // manual reset
@@ -103,6 +92,7 @@ void setup()
     while (1);
   }
   Serial.print("Set Freq to: "); Serial.println(RF95_FREQ);
+  
  
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
  
@@ -114,6 +104,28 @@ void setup()
   Serial.print("Max packet length: "); Serial.println(RH_RF95_MAX_MESSAGE_LEN);
 }
 
+void radiooff(){
+  // manual reset
+  digitalWrite(RFM95_RST, LOW);
+  delay(10);
+}
+
+void setup() 
+{
+  pinMode(LED, OUTPUT);     
+  pinMode(RFM95_RST, OUTPUT);
+  digitalWrite(RFM95_RST, HIGH);
+
+  delay(1000);
+  //while (!Serial);
+  Serial.begin(9600);
+  Serial.setTimeout(10);
+  delay(100);
+ 
+  radioon();
+  digitalWrite(LED, LOW);
+}
+
 //Transmits one beacon and returns.
 void beacon(){
   static int packetnum=0;
@@ -123,7 +135,7 @@ void beacon(){
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s VCC=%f count=%d  http://github.com/travisgoodspeed/lorawan/ RT",
+           "BEACON %s VCC=%f count=%d  http://github.com/travisgoodspeed/loraham/ RT",
             CALLSIGN,
             (float) voltage(),
             packetnum);
@@ -172,16 +184,18 @@ void digipeat(){
   }
 }
 
-void loop()
-{
-  digitalWrite(LED, HIGH);
-  if(!Serial){
+void loop(){
+  if(1 || !Serial){
+    //Turn the radio on.
+    radioon();
     //Transmit a beacon once every five minutes.
     beacon();
+    //Then turn the radio off to save power.
+    radiooff();
+    //Five minute delay between beacons.
     delay(5*60000);
   }else{
     digipeat();
   }
-  digitalWrite(LED, LOW);
 }
 
