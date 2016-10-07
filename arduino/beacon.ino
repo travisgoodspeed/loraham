@@ -3,7 +3,7 @@
  *  
  */
 
-#define CALLSIGN "KK4VCZ-10"
+#define CALLSIGN "KK4VCZ-16"
  
 #include <SPI.h>
 #include <RH_RF95.h>
@@ -135,7 +135,7 @@ void beacon(){
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s VCC=%f count=%d  http://github.com/travisgoodspeed/loraham/ RT",
+           "BEACON %s VCC=%f count=%d Solar. No TX on low voltage. RT",
             CALLSIGN,
             (float) voltage(),
             packetnum);
@@ -185,7 +185,7 @@ void digipeat(){
 }
 
 void loop(){
-  if(1 || !Serial){
+  if(voltage()>3.0){
     //Turn the radio on.
     radioon();
     //Transmit a beacon once every five minutes.
@@ -195,7 +195,10 @@ void loop(){
     //Five minute delay between beacons.
     delay(5*60000);
   }else{
-    digipeat();
+    digitalWrite(LED, HIGH);
+    delay(10);
+    digitalWrite(LED, LOW);
+    delay(1000);
   }
 }
 
