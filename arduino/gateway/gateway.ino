@@ -135,7 +135,7 @@ void beacon(){
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s VCC=%f count=%d Solar. No TX on low voltage. RT",
+           "GATEWAY %s VCC=%f count=%d",
             CALLSIGN,
             (float) voltage(),
             packetnum);
@@ -151,21 +151,38 @@ void beacon(){
   packetnum++;
 }
 
-void loop(){
-  if(voltage()>3.0){
-    //Turn the radio on.
-    radioon();
-    //Transmit a beacon once every five minutes.
-    beacon();
-    //Then turn the radio off to save power.
-    radiooff();
-    //Five minute delay between beacons.
-    delay(5*60000);
-  }else{
-    digitalWrite(LED, HIGH);
-    delay(10);
-    digitalWrite(LED, LOW);
-    delay(1000);
+//If a packet is available, digipeat it.  Otherwise, wait.
+void digipeat(){
+  //Try to receive a reply.
+  if (rf95.available()){
+    // Should be a message for us now   
+    uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+    uint8_t len = sizeof(buf);
+
+    //Serial.println("Waiting on a packet.");
+    if (rf95.recv(buf, &len))
+    {
+      digitalWrite(LED, HIGH);
+      //RH_RF95::printBuffer("Received: ", buf, len);
+      Serial.print("Got: ");
+      Serial.println((char*)buf);
+      Serial.print("RSSI: ");
+      Serial.println(rf95.lastRssi(), DEC);
+      
+      // Send a reply
+      uint8_t data[] = "And hello from KK4VCZ";
+      rf95.send(data, sizeof(data));
+      rf95.waitPacketSent();
+      //Serial.println("Sent a reply");
+      digitalWrite(LED, LOW);
+    }else{
+      Serial.println("Receive failed");
+    }
   }
+}
+
+void loop(){
+  digipeat();
+  beacon();
 }
 
