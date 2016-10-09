@@ -144,7 +144,7 @@ void beacon(){
   radiopacket[sizeof(radiopacket)] = 0;
   
   //Serial.println("Sending..."); delay(10);
-  rf95.send((uint8_t *)radiopacket, sizeof(radiopacket));
+  rf95.send((uint8_t *)radiopacket, strlen((char*) radiopacket));
  
   //Serial.println("Waiting for packet to complete..."); delay(10);
   rf95.waitPacketSent();

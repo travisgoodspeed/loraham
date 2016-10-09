@@ -3,10 +3,10 @@
  *  
  */
 
-#define CALLSIGN "KK4VCZ-16"
+#define CALLSIGN "KK4VCZ-17"
  
 #include <SPI.h>
-#include <RH_RF95.h>
+#include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
  
 /* for feather32u4 
 #define RFM95_CS 8
@@ -110,8 +110,7 @@ void radiooff(){
   delay(10);
 }
 
-void setup() 
-{
+void setup() {
   pinMode(LED, OUTPUT);     
   pinMode(RFM95_RST, OUTPUT);
   digitalWrite(RFM95_RST, HIGH);
@@ -144,11 +143,36 @@ void beacon(){
   radiopacket[sizeof(radiopacket)] = 0;
   
   //Serial.println("Sending..."); delay(10);
-  rf95.send((uint8_t *)radiopacket, sizeof(radiopacket));
+  rf95.send((uint8_t *)radiopacket, strlen(radiopacket));
  
   //Serial.println("Waiting for packet to complete..."); delay(10);
   rf95.waitPacketSent();
   packetnum++;
+}
+
+//Handles retransmission of the packet.
+bool shouldirt(uint8_t *buf, uint8_t len){
+  //Don't RT any packet containing our own callsign.
+  if(strcasestr((char*) buf, CALLSIGN)){
+    Serial.println("I've already retransmitted this one.\n");
+    return false;
+  }
+  //Don't RT if the packet is too long.
+  if(strlen((char*) buf)>128){
+    Serial.println("Length is too long.\n");
+    return false;
+  }
+  
+  //Random backoff if we might RT it.
+  delay(random(10000));
+  //Don't RT if we've gotten an incoming packet in that time.
+  if(rf95.available()){
+    Serial.println("Interrupted by another packet.");
+    return false;
+  }
+
+  //No objections.  RT it!
+  return true;
 }
 
 //If a packet is available, digipeat it.  Otherwise, wait.
@@ -158,31 +182,53 @@ void digipeat(){
     // Should be a message for us now   
     uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
     uint8_t len = sizeof(buf);
-
-    //Serial.println("Waiting on a packet.");
-    if (rf95.recv(buf, &len))
-    {
+    int rssi=0;
+    /*
+     * When we receive a packet, we repeat it after a random
+     * delay if:
+     * 1. It asks to be repeated.
+     * 2. We've not yet received a different packet.
+     * 3. We've waited a random amount of time.
+     * 4. The first word is not RT.
+     */
+    if (rf95.recv(buf, &len)){
+      rssi=rf95.lastRssi();
       digitalWrite(LED, HIGH);
       //RH_RF95::printBuffer("Received: ", buf, len);
-      Serial.print("Got: ");
+      //Serial.print("Got: ");
       Serial.println((char*)buf);
-      Serial.print("RSSI: ");
-      Serial.println(rf95.lastRssi(), DEC);
-      
-      // Send a reply
-      uint8_t data[] = "And hello from KK4VCZ";
-      rf95.send(data, sizeof(data));
-      rf95.waitPacketSent();
-      //Serial.println("Sent a reply");
-      digitalWrite(LED, LOW);
+      Serial.println("");
+
+      if(shouldirt(buf,len)){
+        // Retransmit.
+        uint8_t data[RH_RF95_MAX_MESSAGE_LEN];
+        snprintf((char*) data,
+                 RH_RF95_MAX_MESSAGE_LEN,
+                 "%s\n" //First line is the original packet.
+                 "RT %s rssi=%d", //Then we append our call and strength as a repeater.
+                 (char*) buf,
+                 CALLSIGN,  //Repeater's callsign.
+                 (int) rssi //Signal strength, for routing.
+                 );
+        rf95.send(data, strlen((char*) data));
+        rf95.waitPacketSent();
+        Serial.println((char*) data);
+        digitalWrite(LED, LOW);
+        Serial.println("");
+      }else{
+        Serial.println("Declining to retransmit.\n");
+      }
     }else{
       Serial.println("Receive failed");
     }
+  }else{
+    delay(10);
   }
 }
 
 void loop(){
+  //For now, the gateways just digipeat.
+  //Later it might be a good idea for them to beacon.
   digipeat();
-  beacon();
 }
 
