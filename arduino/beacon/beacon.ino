@@ -3,7 +3,7 @@
  *  
  */
 
-#define CALLSIGN "KK4VCZ-16"
+#define CALLSIGN "KK4VCZ-22"
  
 #include <SPI.h>
 #include <RH_RF95.h>

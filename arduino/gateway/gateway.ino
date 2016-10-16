@@ -3,8 +3,8 @@
  *  
  */
 
-#define CALLSIGN "KK4VCZ-17"
- 
+#define CALLSIGN "KK4VCZ-18"
+
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
  
@@ -154,12 +154,12 @@ void beacon(){
 bool shouldirt(uint8_t *buf, uint8_t len){
   //Don't RT any packet containing our own callsign.
   if(strcasestr((char*) buf, CALLSIGN)){
-    Serial.println("I've already retransmitted this one.\n");
+    //Serial.println("I've already retransmitted this one.\n");
     return false;
   }
   //Don't RT if the packet is too long.
   if(strlen((char*) buf)>128){
-    Serial.println("Length is too long.\n");
+    //Serial.println("Length is too long.\n");
     return false;
   }
   
@@ -167,7 +167,7 @@ bool shouldirt(uint8_t *buf, uint8_t len){
   delay(random(10000));
   //Don't RT if we've gotten an incoming packet in that time.
   if(rf95.available()){
-    Serial.println("Interrupted by another packet.");
+    //Serial.println("Interrupted by another packet.");
     return false;
   }
 
@@ -177,6 +177,7 @@ bool shouldirt(uint8_t *buf, uint8_t len){
 
 //If a packet is available, digipeat it.  Otherwise, wait.
 void digipeat(){
+  digitalWrite(LED, LOW);
   //Try to receive a reply.
   if (rf95.available()){
     // Should be a message for us now   
@@ -196,6 +197,7 @@ void digipeat(){
       digitalWrite(LED, HIGH);
       //RH_RF95::printBuffer("Received: ", buf, len);
       //Serial.print("Got: ");
+      buf[len]=0;
       Serial.println((char*)buf);
       Serial.println("");
 
@@ -216,7 +218,7 @@ void digipeat(){
         digitalWrite(LED, LOW);
         Serial.println("");
       }else{
-        Serial.println("Declining to retransmit.\n");
+        //Serial.println("Declining to retransmit.\n");
       }
     }else{
       Serial.println("Receive failed");
