@@ -3,7 +3,7 @@
  *  
  */
 
-#define CALLSIGN "KK4VCZ-18"
+#define CALLSIGN "KK4VCZ-15"
 
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
@@ -134,16 +134,16 @@ void beacon(){
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "GATEWAY %s VCC=%f count=%d",
-            CALLSIGN,
-            (float) voltage(),
-            packetnum);
-  //itoa(packetnum++, radiopacket+16, 10);
+           "BEACON %s VCC=%f count=%d Low Voltage!",
+	   CALLSIGN,
+	   (float) voltage(),
+	   packetnum);
+
   Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
   radiopacket[sizeof(radiopacket)] = 0;
   
   //Serial.println("Sending..."); delay(10);
-  rf95.send((uint8_t *)radiopacket, strlen(radiopacket));
+  rf95.send((uint8_t *)radiopacket, strlen((char*) radiopacket));
  
   //Serial.println("Waiting for packet to complete..."); delay(10);
   rf95.waitPacketSent();
@@ -177,7 +177,7 @@ bool shouldirt(uint8_t *buf, uint8_t len){
 
 //If a packet is available, digipeat it.  Otherwise, wait.
 void digipeat(){
-  digitalWrite(LED, LOW);
+  //digitalWrite(LED, LOW);
   //Try to receive a reply.
   if (rf95.available()){
     // Should be a message for us now   
@@ -194,7 +194,7 @@ void digipeat(){
      */
     if (rf95.recv(buf, &len)){
       rssi=rf95.lastRssi();
-      digitalWrite(LED, HIGH);
+      //digitalWrite(LED, HIGH);
       //RH_RF95::printBuffer("Received: ", buf, len);
       //Serial.print("Got: ");
       buf[len]=0;
@@ -207,15 +207,16 @@ void digipeat(){
         snprintf((char*) data,
                  RH_RF95_MAX_MESSAGE_LEN,
                  "%s\n" //First line is the original packet.
-                 "RT %s rssi=%d", //Then we append our call and strength as a repeater.
+                 "RT %s rssi=%d VCC=%f", //Then we append our call and strength as a repeater.
                  (char*) buf,
                  CALLSIGN,  //Repeater's callsign.
-                 (int) rssi //Signal strength, for routing.
+                 (int) rssi, //Signal strength, for routing.
+                 voltage() //Repeater's voltage
                  );
         rf95.send(data, strlen((char*) data));
         rf95.waitPacketSent();
         Serial.println((char*) data);
-        digitalWrite(LED, LOW);
+        //digitalWrite(LED, LOW);
         Serial.println("");
       }else{
         //Serial.println("Declining to retransmit.\n");
@@ -229,8 +230,16 @@ void digipeat(){
 }
 
 void loop(){
-  //For now, the gateways just digipeat.
-  //Later it might be a good idea for them to beacon.
-  digipeat();
+  //Only digipeat if the battery is in good shape.
+  if(voltage()>3.5){
+    //Only digipeat when battery is high.
+    digipeat();
+  }else{
+    //Transmit a beacon every ten minutes when battery is low.
+    radiooff();
+    delay(10*60000);
+    radioon();
+    beacon();
+  };
 }
 
