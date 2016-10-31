@@ -6,7 +6,7 @@
 #define CALLSIGN "KK4VCZ-22"
  
 #include <SPI.h>
-#include <RH_RF95.h>
+#include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
  
 /* for feather32u4 
 #define RFM95_CS 8
@@ -139,7 +139,7 @@ void beacon(){
             CALLSIGN,
             (float) voltage(),
             packetnum);
-  //itoa(packetnum++, radiopacket+16, 10);
+
   Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
   radiopacket[sizeof(radiopacket)] = 0;
   
