@@ -3,7 +3,7 @@
  *  
  */
 
-#define CALLSIGN "KK4VCZ-15"
+#define CALLSIGN "AB3TL-10"
 
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
@@ -82,17 +82,17 @@ void radioon(){
  
   while (!rf95.init()) {
     Serial.println("LoRa radio init failed");
-    while (1);
+    //while (1);
   }
   Serial.println("LoRa radio init OK!");
  
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
   if (!rf95.setFrequency(RF95_FREQ)) {
     Serial.println("setFrequency failed");
-    while (1);
+    //while (1);
+  }else{
+    Serial.print("Set Freq to: "); Serial.println(RF95_FREQ);
   }
-  Serial.print("Set Freq to: "); Serial.println(RF95_FREQ);
-  
  
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
  
@@ -123,6 +123,23 @@ void setup() {
  
   radioon();
   digitalWrite(LED, LOW);
+
+  //Beacon once at startup.
+  beacon();
+}
+
+//! Uptime in seconds, correcting for rollover.
+long int uptime(){
+  static unsigned long rollover=0;
+  static unsigned long lastmillis=millis();
+
+  //Account for rollovers, every ~50 days or so.
+  if(lastmillis<millis()){
+    rollover+=(lastmillis>>10);
+    lastmillis=millis();
+  }
+
+  return(rollover+(millis()>>10));
 }
 
 //Transmits one beacon and returns.
@@ -134,10 +151,11 @@ void beacon(){
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s VCC=%f count=%d Low Voltage!",
-	   CALLSIGN,
-	   (float) voltage(),
-	   packetnum);
+           "BEACON %s VCC=%f count=%d uptime=%ld",
+           CALLSIGN,
+           (float) voltage(),
+           packetnum,
+           uptime());
 
   Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
   radiopacket[sizeof(radiopacket)] = 0;
@@ -149,6 +167,7 @@ void beacon(){
   rf95.waitPacketSent();
   packetnum++;
 }
+
 
 //Handles retransmission of the packet.
 bool shouldirt(uint8_t *buf, uint8_t len){
@@ -207,11 +226,12 @@ void digipeat(){
         snprintf((char*) data,
                  RH_RF95_MAX_MESSAGE_LEN,
                  "%s\n" //First line is the original packet.
-                 "RT %s rssi=%d VCC=%f", //Then we append our call and strength as a repeater.
+                 "RT %s rssi=%d VCC=%f uptime=%ld", //Then we append our call and strength as a repeater.
                  (char*) buf,
                  CALLSIGN,  //Repeater's callsign.
                  (int) rssi, //Signal strength, for routing.
-                 voltage() //Repeater's voltage
+                 voltage(), //Repeater's voltage
+                 uptime()
                  );
         rf95.send(data, strlen((char*) data));
         rf95.waitPacketSent();
@@ -230,10 +250,18 @@ void digipeat(){
 }
 
 void loop(){
+  unsigned long lastbeacon=millis();
+  
   //Only digipeat if the battery is in good shape.
   if(voltage()>3.5){
     //Only digipeat when battery is high.
     digipeat();
+
+    //Every ten minutes, we beacon just in case.
+    if(millis()-lastbeacon>10*60000){
+      beacon();
+      lastbeacon=millis();
+    }
   }else{
     //Transmit a beacon every ten minutes when battery is low.
     radiooff();
