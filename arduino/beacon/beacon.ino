@@ -1,9 +1,9 @@
 /* This is a beacon for the LoRaHam protocol by KK4VCZ.
  * https://github.com/travisgoodspeed/loraham/
- *  
+ * 
  */
 
-#define CALLSIGN "KK4VCZ-22"
+#define CALLSIGN "KK4VCZ-18"
  
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
@@ -72,8 +72,6 @@ float voltage(){
 }
 
 void radioon(){
-  Serial.println("Feather LoRa RX Test!");
-  
   // manual reset
   digitalWrite(RFM95_RST, LOW);
   delay(10);
@@ -126,6 +124,21 @@ void setup()
   digitalWrite(LED, LOW);
 }
 
+
+//! Uptime in seconds, correcting for rollover.
+long int uptime(){
+  static unsigned long rollover=0;
+  static unsigned long lastmillis=millis();
+
+  //Account for rollovers, every ~50 days or so.
+  if(lastmillis<millis()){
+    rollover+=(lastmillis>>10);
+    lastmillis=millis();
+  }
+
+  return(rollover+(millis()>>10));
+}
+
 //Transmits one beacon and returns.
 void beacon(){
   static int packetnum=0;
@@ -135,10 +148,11 @@ void beacon(){
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s VCC=%f count=%d Solar. No TX on low voltage. RT",
-            CALLSIGN,
-            (float) voltage(),
-            packetnum);
+           "BEACON %s VCC=%f count=%d uptime=%ld",
+           CALLSIGN,
+           (float) voltage(),
+           packetnum,
+           uptime());
 
   Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
   radiopacket[sizeof(radiopacket)] = 0;
@@ -152,20 +166,14 @@ void beacon(){
 }
 
 void loop(){
-  if(voltage()>3.0){
-    //Turn the radio on.
-    radioon();
-    //Transmit a beacon once every five minutes.
-    beacon();
-    //Then turn the radio off to save power.
-    radiooff();
-    //Five minute delay between beacons.
-    delay(5*60000);
-  }else{
-    digitalWrite(LED, HIGH);
-    delay(10);
-    digitalWrite(LED, LOW);
-    delay(1000);
-  }
+  //Turn the radio on.
+  radioon();
+  //Transmit a beacon once every five minutes.
+  beacon();
+  //Then turn the radio off to save power.
+  radiooff();
+  
+  //Five minute delay between beacons.
+  delay(5*60000);
 }
 
