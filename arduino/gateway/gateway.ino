@@ -3,7 +3,7 @@
  *  
  */
 
-#define CALLSIGN "AB3TL-10"
+#define CALLSIGN "KK4VCZ-14"
 
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
@@ -250,7 +250,7 @@ void digipeat(){
 }
 
 void loop(){
-  unsigned long lastbeacon=millis();
+  static unsigned long lastbeacon=millis();
   
   //Only digipeat if the battery is in good shape.
   if(voltage()>3.5){
