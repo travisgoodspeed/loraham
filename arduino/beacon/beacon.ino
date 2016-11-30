@@ -3,21 +3,24 @@
  * 
  */
 
-#define CALLSIGN "KK4VCZ-18"
+#define CALLSIGN "KK4VCZ-17"
+#define COMMENTS "2600mAh AVR32"
  
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
  
-/* for feather32u4 
+/* for feather32u4  */
 #define RFM95_CS 8
 #define RFM95_RST 4
-#define RFM95_INT 7*/
- 
-/* for feather m0  */
+#define RFM95_INT 7
+#define VBATPIN A9
+
+/* for feather m0  
 #define RFM95_CS 8
 #define RFM95_RST 4
 #define RFM95_INT 3
-
+#define VBATPIN A7
+*/
  
 /* for shield 
 #define RFM95_CS 10
@@ -62,7 +65,6 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 //Returns the battery voltage as a float.
 float voltage(){
-  #define VBATPIN A7
 
   float measuredvbat = analogRead(VBATPIN);
   measuredvbat *= 2;    // we divided by 2, so multiply back
@@ -131,7 +133,7 @@ long int uptime(){
   static unsigned long lastmillis=millis();
 
   //Account for rollovers, every ~50 days or so.
-  if(lastmillis<millis()){
+  if(lastmillis>millis()){
     rollover+=(lastmillis>>10);
     lastmillis=millis();
   }
@@ -148,9 +150,11 @@ void beacon(){
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s VCC=%f count=%d uptime=%ld",
+           "BEACON %s %s VCC=%d.%d count=%d uptime=%ld",
            CALLSIGN,
-           (float) voltage(),
+           COMMENTS,
+           (int) voltage(),
+           (int) (voltage()*1000)%1000,
            packetnum,
            uptime());
 
