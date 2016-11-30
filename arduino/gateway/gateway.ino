@@ -11,13 +11,14 @@
 /* for feather32u4 
 #define RFM95_CS 8
 #define RFM95_RST 4
-#define RFM95_INT 7*/
+#define RFM95_INT 7
+#define VBATPIN A9  /**/
  
 /* for feather m0  */
 #define RFM95_CS 8
 #define RFM95_RST 4
 #define RFM95_INT 3
-
+#define VBATPIN A7
  
 /* for shield 
 #define RFM95_CS 10
@@ -62,8 +63,6 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 //Returns the battery voltage as a float.
 float voltage(){
-  #define VBATPIN A7
-
   float measuredvbat = analogRead(VBATPIN);
   measuredvbat *= 2;    // we divided by 2, so multiply back
   measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
@@ -134,7 +133,7 @@ long int uptime(){
   static unsigned long lastmillis=millis();
 
   //Account for rollovers, every ~50 days or so.
-  if(lastmillis<millis()){
+  if(lastmillis>millis()){
     rollover+=(lastmillis>>10);
     lastmillis=millis();
   }
