@@ -3,7 +3,7 @@
  *  
  */
 
-#define CALLSIGN "KK4VCZ-14"
+#define CALLSIGN "KB3RGT-10"
 
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
@@ -12,7 +12,7 @@
 #define RFM95_CS 8
 #define RFM95_RST 4
 #define RFM95_INT 7
-#define VBATPIN A9  /**/
+#define VBATPIN A9  
  
 /* for feather m0  */
 #define RFM95_CS 8
@@ -61,6 +61,22 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 // Blinky on receipt
 #define LED 13
 
+// ring buffer size in packets
+#define BUFFER_PACKETS 10
+
+// max xmit wait - we'll wait between 0 and n milliseconds before transmitting to avoid collision
+#define MAX_XMIT_WAIT 10000
+
+
+uint8_t recvbuf[BUFFER_PACKETS][RH_RF95_MAX_MESSAGE_LEN + 1]; // + 1 to accommodate str terminating null byte at end
+int recvrssi[BUFFER_PACKETS];
+
+uint8_t xmitbuf[BUFFER_PACKETS][RH_RF95_MAX_MESSAGE_LEN + 1];
+
+uint8_t recvbufi = 0;
+int8_t xmitbufi = -1;
+
+
 //Returns the battery voltage as a float.
 float voltage(){
   float measuredvbat = analogRead(VBATPIN);
@@ -92,7 +108,7 @@ void radioon(){
   }else{
     Serial.print("Set Freq to: "); Serial.println(RF95_FREQ);
   }
- 
+
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
  
   // The default transmitter power is 13dBm, using PA_BOOST.
@@ -123,6 +139,11 @@ void setup() {
   radioon();
   digitalWrite(LED, LOW);
 
+  for(int i = 0; i < BUFFER_PACKETS; i++) {
+    recvbuf[i][0] = xmitbuf[i][0] = 0;  // clear buffers
+    recvbuf[i][RH_RF95_MAX_MESSAGE_LEN] = 0;
+  }
+
   //Beacon once at startup.
   beacon();
 }
@@ -141,12 +162,66 @@ long int uptime(){
   return(rollover+(millis()>>10));
 }
 
-//Transmits one beacon and returns.
+
+// queue a packet for transmission
+void queuepkt(uint8_t *buf) {
+  if (xmitbufi < BUFFER_PACKETS - 1) {
+    xmitbufi++;
+  }
+  strcpy((char*) xmitbuf[xmitbufi], (char*) buf);
+  xmitbuf[xmitbufi][RH_RF95_MAX_MESSAGE_LEN] = 0; // just in case!
+}
+
+// looks at all the packets in the recv buffer and takes appropriate action
+void handlepackets() {
+  for (int i = 0; i < BUFFER_PACKETS; i++) {
+    if (strlen((char*) recvbuf[i]) > 0) {
+      if (shouldrt(recvbuf[i])) {
+        digipeat(recvbuf[i], recvrssi[i]);
+      }
+
+      recvbuf[i][0] = 0; // handled!
+    }
+  }
+}
+
+// transmits all the packets in the xmit stack, while receiving any that come in
+void xmitstack() {
+  while (xmitbufi > -1) {
+    while(rf95.waitCAD() && recvpkt()) {}
+    Serial.print("TX: ");
+    Serial.println((char*) xmitbuf[xmitbufi]);
+    digitalWrite(LED, HIGH);
+    rf95.send(xmitbuf[xmitbufi], strlen((char*) xmitbuf[xmitbufi]));
+    rf95.waitPacketSent();
+    digitalWrite(LED, LOW);
+
+    xmitbufi--;
+  }
+}
+
+// if packet available, place it in the recv buffer
+bool recvpkt() {
+  uint8_t len = RH_RF95_MAX_MESSAGE_LEN;
+  bool packetrecieved = false;
+  while (rf95.available()) {
+    recvbufi = recvbufi + 1 % BUFFER_PACKETS;
+    if (rf95.recv(recvbuf[recvbufi], &len)) {
+      recvbuf[recvbufi][len] = 0;
+      recvrssi[recvbufi] = rf95.lastRssi();
+      Serial.print("RX ");
+      Serial.print(recvrssi[recvbufi]);
+      Serial.print(": "); Serial.println((char*) recvbuf[recvbufi]);
+      packetrecieved = true;
+    }
+  }
+  return packetrecieved;
+}
+
+// put a beacon packet in the queue
 void beacon(){
   static int packetnum=0;
-  
-  //Serial.println("Transmitting..."); // Send a message to rf95_server
-  
+
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
@@ -156,20 +231,15 @@ void beacon(){
            packetnum,
            uptime());
 
-  Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
   radiopacket[sizeof(radiopacket)] = 0;
-  
-  //Serial.println("Sending..."); delay(10);
-  rf95.send((uint8_t *)radiopacket, strlen((char*) radiopacket));
- 
-  //Serial.println("Waiting for packet to complete..."); delay(10);
-  rf95.waitPacketSent();
+
+  queuepkt((uint8_t*) radiopacket);
   packetnum++;
 }
 
 
-//Handles retransmission of the packet.
-bool shouldirt(uint8_t *buf, uint8_t len){
+// returns true if supplied packet should be retransmitted
+bool shouldrt(uint8_t *buf){
   //Don't RT any packet containing our own callsign.
   if(strcasestr((char*) buf, CALLSIGN)){
     //Serial.println("I've already retransmitted this one.\n");
@@ -180,86 +250,52 @@ bool shouldirt(uint8_t *buf, uint8_t len){
     //Serial.println("Length is too long.\n");
     return false;
   }
-  
-  //Random backoff if we might RT it.
-  delay(random(10000));
-  //Don't RT if we've gotten an incoming packet in that time.
-  if(rf95.available()){
-    //Serial.println("Interrupted by another packet.");
-    return false;
-  }
-
   //No objections.  RT it!
   return true;
 }
 
-//If a packet is available, digipeat it.  Otherwise, wait.
-void digipeat(){
-  //digitalWrite(LED, LOW);
-  //Try to receive a reply.
-  if (rf95.available()){
-    // Should be a message for us now   
-    uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
-    uint8_t len = sizeof(buf);
-    int rssi=0;
-    /*
-     * When we receive a packet, we repeat it after a random
-     * delay if:
-     * 1. It asks to be repeated.
-     * 2. We've not yet received a different packet.
-     * 3. We've waited a random amount of time.
-     * 4. The first word is not RT.
-     */
-    if (rf95.recv(buf, &len)){
-      rssi=rf95.lastRssi();
-      //digitalWrite(LED, HIGH);
-      //RH_RF95::printBuffer("Received: ", buf, len);
-      //Serial.print("Got: ");
-      buf[len]=0;
-      Serial.println((char*)buf);
-      Serial.println("");
-
-      if(shouldirt(buf,len)){
-        // Retransmit.
-        uint8_t data[RH_RF95_MAX_MESSAGE_LEN];
-        snprintf((char*) data,
-                 RH_RF95_MAX_MESSAGE_LEN,
-                 "%s\n" //First line is the original packet.
-                 "RT %s rssi=%d VCC=%f uptime=%ld", //Then we append our call and strength as a repeater.
-                 (char*) buf,
-                 CALLSIGN,  //Repeater's callsign.
-                 (int) rssi, //Signal strength, for routing.
-                 voltage(), //Repeater's voltage
-                 uptime()
-                 );
-        rf95.send(data, strlen((char*) data));
-        rf95.waitPacketSent();
-        Serial.println((char*) data);
-        //digitalWrite(LED, LOW);
-        Serial.println("");
-      }else{
-        //Serial.println("Declining to retransmit.\n");
-      }
-    }else{
-      Serial.println("Receive failed");
-    }
-  }else{
+// Add RT lines to recieved packet and queue it for transmission
+void digipeat(uint8_t *pkt, int rssi){
+  uint8_t data[RH_RF95_MAX_MESSAGE_LEN+1];
+  int r = random(MAX_XMIT_WAIT);
+  snprintf((char*) data,
+           RH_RF95_MAX_MESSAGE_LEN,
+           "%s\n" //First line is the original packet.
+           "RT %s rssi=%d VCC=%f uptime=%ld", //Then we append our call and strength as a repeater.
+           (char*) pkt,
+           CALLSIGN,  //Repeater's callsign.
+           rssi, //Signal strength, for routing.
+           voltage(), //Repeater's voltage
+           uptime()
+           );
+  for (int n = 0; n < r / 10; n++) {
     delay(10);
+    recvpkt();
   }
+  queuepkt(data);
 }
 
 void loop(){
   static unsigned long lastbeacon=millis();
+  int n;
   
   //Only digipeat if the battery is in good shape.
   if(voltage()>3.5){
     //Only digipeat when battery is high.
-    digipeat();
+    digitalWrite(LED, HIGH);
+    delay(10);
+    digitalWrite(LED, LOW);
+    for(n = 0; n < 1000; n++) {
+      recvpkt();
+      handlepackets();
+      xmitstack();
+      delay(20);
 
-    //Every ten minutes, we beacon just in case.
-    if(millis()-lastbeacon>10*60000){
-      beacon();
-      lastbeacon=millis();
+      //Every ten minutes, we beacon just in case.
+      if(millis()-lastbeacon>10*60000){
+        beacon();
+        lastbeacon=millis();
+      }
     }
   }else{
     //Transmit a beacon every ten minutes when battery is low.
@@ -267,6 +303,7 @@ void loop(){
     delay(10*60000);
     radioon();
     beacon();
+    xmitstack();
   };
 }
 
