@@ -6,6 +6,9 @@
 #include "utilities.h"
 #include "network.h"
 
+// power on/off status of radio
+bool radiostatus = false;
+
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
@@ -42,6 +45,9 @@ void radiosetup()
 
 
 void radioon() {
+  if(radiostatus == true) {
+    return;
+  }
   Serial.println("Feather LoRa init start!");
 
   // manual reset
@@ -72,12 +78,17 @@ void radioon() {
   rf95.setTxPower(23, false);
   Serial.println("Set power to 23.");
   Serial.print("Max packet length: "); Serial.println(RH_RF95_MAX_MESSAGE_LEN);
+  radiostatus = true;
 }
 
 void radiooff() {
+  if(radiostatus == false) {
+    return;
+  }
   // manual reset
   digitalWrite(RFM95_RST, LOW);
   delay(10);
+  radiostatus = false;
 }
 
 // put a beacon packet in the queue
