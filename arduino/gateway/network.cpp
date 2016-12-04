@@ -9,18 +9,18 @@
 // power on/off status of radio
 bool radiostatus = false;
 
-struct packet {
+typedef struct {
   uint8_t data[RH_RF95_MAX_MESSAGE_LEN + 1];
   int rssi;
-};
+} Packet;
 
 
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 // recv/xmit buffers
-struct packet recvbuf[BUFFER_PACKETS];
-struct packet xmitbuf[BUFFER_PACKETS];
+Packet recvbuf[BUFFER_PACKETS];
+Packet xmitbuf[BUFFER_PACKETS];
 
 uint8_t recvbufi = 0;
 int8_t xmitbufi = -1;
@@ -38,8 +38,8 @@ void queuepkt(uint8_t *buf) {
 void radiosetup()
 {
   // clear buffers
-  memset(recvbuf, 0, (BUFFER_PACKETS*sizeof (struct packet)));
-  memset(xmitbuf, 0, (BUFFER_PACKETS*sizeof (struct packet)));
+  memset(recvbuf, 0, (BUFFER_PACKETS*sizeof (Packet)));
+  memset(xmitbuf, 0, (BUFFER_PACKETS*sizeof (Packet)));
 
   // configure radio pins
   pinMode(RFM95_RST, OUTPUT);
@@ -138,7 +138,7 @@ void handlepackets() {
         digipeat(recvbuf[i].data, recvbuf[i].rssi);
       }
 
-      memset(&recvbuf[i], 0, sizeof (struct packet)); // handled
+      memset(&recvbuf[i], 0, sizeof (Packet)); // handled
     }
   }
 }
