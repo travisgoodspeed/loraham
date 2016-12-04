@@ -9,14 +9,18 @@
 // power on/off status of radio
 bool radiostatus = false;
 
+struct packet {
+  uint8_t data[RH_RF95_MAX_MESSAGE_LEN + 1];
+  int rssi;
+};
+
+
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 // recv/xmit buffers
-uint8_t recvbuf[BUFFER_PACKETS][RH_RF95_MAX_MESSAGE_LEN + 1]; // + 1 to accommodate str terminating null byte at end
-int recvrssi[BUFFER_PACKETS];
-
-uint8_t xmitbuf[BUFFER_PACKETS][RH_RF95_MAX_MESSAGE_LEN + 1];
+struct packet recvbuf[BUFFER_PACKETS];
+struct packet xmitbuf[BUFFER_PACKETS];
 
 uint8_t recvbufi = 0;
 int8_t xmitbufi = -1;
@@ -27,16 +31,15 @@ void queuepkt(uint8_t *buf) {
   if (xmitbufi < BUFFER_PACKETS - 1) {
     xmitbufi++;
   }
-  strcpy((char*) xmitbuf[xmitbufi], (char*) buf);
-  xmitbuf[xmitbufi][RH_RF95_MAX_MESSAGE_LEN] = 0; // just in case!
+  strcpy((char*) xmitbuf[xmitbufi].data, (char*) buf);
+  xmitbuf[xmitbufi].data[RH_RF95_MAX_MESSAGE_LEN] = 0; // just in case!
 }
 
 void radiosetup()
 {
   // clear buffers
-  memset(recvbuf, 0, (BUFFER_PACKETS*(RH_RF95_MAX_MESSAGE_LEN+1)));
-  memset(xmitbuf, 0, (BUFFER_PACKETS*(RH_RF95_MAX_MESSAGE_LEN+1)));
-  memset(recvrssi, 0, BUFFER_PACKETS);
+  memset(recvbuf, 0, (BUFFER_PACKETS*sizeof (struct packet)));
+  memset(xmitbuf, 0, (BUFFER_PACKETS*sizeof (struct packet)));
 
   // configure radio pins
   pinMode(RFM95_RST, OUTPUT);
@@ -48,8 +51,6 @@ void radioon() {
   if(radiostatus == true) {
     return;
   }
-  Serial.println("Feather LoRa init start!");
-
   // manual reset
   digitalWrite(RFM95_RST, LOW);
   delay(10);
@@ -58,9 +59,8 @@ void radioon() {
 
   while (!rf95.init()) {
     Serial.println("LoRa radio init failed");
-    //while (1);
+    while (1) { delay(10000); }
   }
-  Serial.println("LoRa radio init OK!");
 
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
   if (!rf95.setFrequency(RF95_FREQ)) {
@@ -118,12 +118,12 @@ bool recvpkt() {
   bool packetrecieved = false;
   while (rf95.available()) {
     recvbufi = recvbufi + 1 % BUFFER_PACKETS;
-    if (rf95.recv(recvbuf[recvbufi], &len)) {
-      recvbuf[recvbufi][len] = 0;
-      recvrssi[recvbufi] = rf95.lastRssi();
+    if (rf95.recv(recvbuf[recvbufi].data, &len)) {
+      recvbuf[recvbufi].data[len] = 0;
+      recvbuf[recvbufi].rssi = rf95.lastRssi();
       Serial.print("RX ");
-      Serial.print(recvrssi[recvbufi]);
-      Serial.print(": "); Serial.println((char*) recvbuf[recvbufi]);
+      Serial.print(recvbuf[recvbufi].rssi);
+      Serial.print(": "); Serial.println((char*) recvbuf[recvbufi].data);
       packetrecieved = true;
     }
   }
@@ -133,12 +133,12 @@ bool recvpkt() {
 // looks at all the packets in the recv buffer and takes appropriate action
 void handlepackets() {
   for (int i = 0; i < BUFFER_PACKETS; i++) {
-    if (strlen((char*) recvbuf[i]) > 0) {
-      if (shouldrt(recvbuf[i])) {
-        digipeat(recvbuf[i], recvrssi[i]);
+    if (strlen((char*) recvbuf[i].data) > 0) {
+      if (shouldrt(recvbuf[i].data)) {
+        digipeat(recvbuf[i].data, recvbuf[i].rssi);
       }
 
-      recvbuf[i][0] = 0; // handled!
+      memset(&recvbuf[i], 0, sizeof (struct packet)); // handled
     }
   }
 }
@@ -169,13 +169,13 @@ bool digipeat(uint8_t *pkt, int rssi) {
 // transmits all the packets in the xmit stack, while receiving any that come in
 void xmitstack() {
   while (xmitbufi > -1) {
-    while (rf95.waitCAD() && recvpkt()) {}
+    while (recvpkt()) {}
     Serial.print("TX: ");
-    Serial.println((char*) xmitbuf[xmitbufi]);
+    Serial.println((char*) xmitbuf[xmitbufi].data);
 #ifdef BLINK_LED
     digitalWrite(LED, HIGH);
 #endif
-    rf95.send(xmitbuf[xmitbufi], strlen((char*) xmitbuf[xmitbufi]));
+    rf95.send(xmitbuf[xmitbufi].data, strlen((char*) xmitbuf[xmitbufi].data));
     rf95.waitPacketSent();
 #ifdef BLINK_LED
     digitalWrite(LED, LOW);
