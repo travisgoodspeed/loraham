@@ -117,7 +117,7 @@ bool recvpkt() {
   uint8_t len = RH_RF95_MAX_MESSAGE_LEN;
   bool packetrecieved = false;
   while (rf95.available()) {
-    recvbufi = recvbufi + 1 % BUFFER_PACKETS;
+    recvbufi = (recvbufi + 1) % BUFFER_PACKETS;
     if (rf95.recv(recvbuf[recvbufi].data, &len)) {
       recvbuf[recvbufi].data[len] = 0;
       recvbuf[recvbufi].rssi = rf95.lastRssi();
