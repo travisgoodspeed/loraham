@@ -13,7 +13,13 @@
 #include "utilities.h"
 #include "network.h"
 
+#define MODE_OFF 0
+#define MODE_CONTINUOUS 1
+#define MODE_XMIT_ONLY 2
+#define MODE_LOWBATT 3
+
 unsigned long lastbeacon = 0; // var for last beacon time
+unsigned char mode = MODE_OFF;
 
 void setup() {
   // configure LED and pins
@@ -28,58 +34,84 @@ void setup() {
 
   // set up the radio
   radiosetup(); // network.cpp
-
-  //Beacon once at startup (if we're going to have an active loop)
-  if (voltage() > RADIO_CONTINUOUS_VOLTAGE) {
-    radioon();
-    beacon("POWERED ON");
-  }
-
-  // enable periodic beacon task
-#ifdef BEACON_PERIODIC
-#endif
 }
 
 
 void loop() {
-  // if battery is low we turn off the radio and do not digipeat
-  if (voltage() < RADIO_CONTINUOUS_VOLTAGE) {
-    radiooff();
+  // mode changes
+  switch(mode) {
+    case MODE_OFF: // turn radio on, probably
+      if(voltage() < ONLY_CHARGE_VOLTAGE) {
+        mode = MODE_LOWBATT;
+      } else {
+        radioon();
+        if(voltage() > RADIO_CONTINUOUS_VOLTAGE) {
+          beacon("Powered on!");
+          mode = MODE_CONTINUOUS;
+        } else {
+          beacon("Powered on! Transmit only!");
+          xmitstack();
+          radiooff();
+          mode = MODE_XMIT_ONLY;
+        }
+        lastbeacon = millis();
+      }
+      break;
+    case MODE_CONTINUOUS:
+      if(voltage() < MIN_XMIT_VOLTAGE) {
+        beacon("Entering transmit only mode.");
+        xmitstack();
+        radiooff();
+        lastbeacon = millis();
+        mode = MODE_XMIT_ONLY;
+      }
+      break;
+    case MODE_XMIT_ONLY:
+      if(voltage() > RADIO_CONTINUOUS_VOLTAGE) {
+        radioon();
+        mode = MODE_CONTINUOUS;
+      } else if (voltage() < ONLY_CHARGE_VOLTAGE) {
+        beacon("Low battery! Turning radio off.");
+        xmitstack();
+        radiooff();
+        mode = MODE_LOWBATT;
+      }
+      break;
+    case MODE_LOWBATT:
+      if(voltage() > MIN_XMIT_VOLTAGE) {
+        radioon();
+        beacon("Waking from charge mode. Transmit only!");
+        xmitstack();
+        radiooff();
+        mode = MODE_XMIT_ONLY;
+      }
+      break;
   }
-  else {
-    radioon();
-    recvpkt();
-    handlepackets();
-    xmitstack();
-  }
 
-
-  // If battery is above MIN_XMIT_VOLTAGE we beacon periodically.
-  // If battery is below RADIO_CONTINUOUS_VOLTAGE we use a reduced beacon period and delay() to reduce battery waste.
-
+  switch (mode) {
+    case MODE_CONTINUOUS:
 #ifdef BEACON_PERIODIC
-  if(voltage() > RADIO_CONTINUOUS_VOLTAGE) {
-    if(millis() - lastbeacon > BEACON_PERIOD) {
-      // radio is already on since voltage is high enough
-      beacon("XMIT ONLY");
+      if(millis()-lastbeacon>BEACON_PERIOD) {
+        beacon("");
+        lastbeacon = millis();
+      }
+#endif
+      recvpkt();
+      handlepackets();
       xmitstack();
-      lastbeacon = millis();
-    }
-  }
-  else if(voltage() > MIN_XMIT_VOLTAGE) {
-    // turn on radio
-    radioon();
-    // transmit a beacon
-      beacon("XMIT ONLY");
+      delay(20);
+      break;
+    case MODE_XMIT_ONLY:
+      delay(BEACON_PERIOD_LOWBATT);
+#ifdef BEACON_PERIODIC
+      radioon();
+      beacon("Transmit only");
       xmitstack();
-      lastbeacon = millis();
-    // since voltage is too low for digipeat, turn radio off and delay by low battery period
-    radiooff();
-    delay(BEACON_PERIOD_LOWBATT);
-  }
-#endif // BEACON_PERIODIC
-
-  if(voltage() < MIN_XMIT_VOLTAGE) {
-    delay(LOWBATT_WAIT_PERIOD);
+      radiooff();
+#endif
+      break;
+    case MODE_LOWBATT:
+      delay(LOWBATT_WAIT_PERIOD);
+      break;
   }
 }
