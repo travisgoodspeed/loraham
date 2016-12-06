@@ -156,7 +156,7 @@ void beacon(){
            packetnum,
            uptime());
 
-  Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
+  //Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
   radiopacket[sizeof(radiopacket)] = 0;
   
   //Serial.println("Sending..."); delay(10);
