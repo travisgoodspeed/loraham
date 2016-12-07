@@ -78,6 +78,7 @@ void radioon() {
   rf95.setTxPower(23, false);
   Serial.println("Set power to 23.");
   Serial.print("Max packet length: "); Serial.println(RH_RF95_MAX_MESSAGE_LEN);
+  rf95.setModeRx();
   radiostatus = true;
 }
 
@@ -172,16 +173,18 @@ void xmitstack() {
     while (recvpkt()) {}
     Serial.print("TX: ");
     Serial.println((char*) xmitbuf[xmitbufi].data);
-#ifdef BLINK_LED
+#ifdef DEBUG_LED_XMIT
     digitalWrite(LED, HIGH);
 #endif
     rf95.send(xmitbuf[xmitbufi].data, strlen((char*) xmitbuf[xmitbufi].data));
     rf95.waitPacketSent();
-#ifdef BLINK_LED
+#ifdef DEBUG_LED_XMIT
     digitalWrite(LED, LOW);
 #endif
 
     xmitbufi--;
   }
+  rf95.setModeRx();
 }
+
 

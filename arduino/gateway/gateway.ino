@@ -13,12 +13,13 @@
 #include "utilities.h"
 #include "network.h"
 
+#include "sleep.h"
+
 #define MODE_OFF 0
 #define MODE_CONTINUOUS 1
 #define MODE_XMIT_ONLY 2
 #define MODE_LOWBATT 3
 
-unsigned long lastbeacon = 0; // var for last beacon time
 unsigned char mode = MODE_OFF;
 
 void setup() {
@@ -34,6 +35,7 @@ void setup() {
 
   // set up the radio
   radiosetup(); // network.cpp
+  sleepsetup();
 }
 
 
@@ -47,14 +49,15 @@ void loop() {
         radioon();
         if(voltage() > RADIO_CONTINUOUS_VOLTAGE) {
           beacon("Powered on!");
+          sleepreset();
           mode = MODE_CONTINUOUS;
         } else {
           beacon("Powered on! Transmit only!");
           xmitstack();
           radiooff();
+          sleepreset();
           mode = MODE_XMIT_ONLY;
         }
-        lastbeacon = millis();
       }
       break;
     case MODE_CONTINUOUS:
@@ -62,18 +65,20 @@ void loop() {
         beacon("Entering transmit only mode.");
         xmitstack();
         radiooff();
-        lastbeacon = millis();
+        sleepreset();
         mode = MODE_XMIT_ONLY;
       }
       break;
     case MODE_XMIT_ONLY:
       if(voltage() > RADIO_CONTINUOUS_VOLTAGE) {
         radioon();
+        sleepreset();
         mode = MODE_CONTINUOUS;
       } else if (voltage() < ONLY_CHARGE_VOLTAGE) {
         beacon("Low battery! Turning radio off.");
         xmitstack();
         radiooff();
+        sleepreset();
         mode = MODE_LOWBATT;
       }
       break;
@@ -83,6 +88,7 @@ void loop() {
         beacon("Waking from charge mode. Transmit only!");
         xmitstack();
         radiooff();
+        sleepreset();
         mode = MODE_XMIT_ONLY;
       }
       break;
@@ -90,28 +96,33 @@ void loop() {
 
   switch (mode) {
     case MODE_CONTINUOUS:
-#ifdef BEACON_PERIODIC
-      if(millis()-lastbeacon>BEACON_PERIOD) {
-        beacon("");
-        lastbeacon = millis();
-      }
-#endif
       recvpkt();
       handlepackets();
       xmitstack();
+#ifdef BEACON_PERIODIC
+      if(sleep(BEACON_PERIOD / 1000)) {
+        beacon("");
+        sleepreset();
+      }
+#endif
       delay(20);
       break;
     case MODE_XMIT_ONLY:
-      delay(BEACON_PERIOD_LOWBATT);
+      if(sleep(BEACON_PERIOD_LOWBATT / 1000)) {
+        beacon("Transmit only!");
+        sleepreset();
+      }
+      delay(20);
 #ifdef BEACON_PERIODIC
       radioon();
-      beacon("Transmit only");
       xmitstack();
       radiooff();
 #endif
       break;
     case MODE_LOWBATT:
-      delay(LOWBATT_WAIT_PERIOD);
+      sleepreset();
+      until(sleep(LOWBATT_WAIT_PERIOD / 1000)) {}
       break;
   }
 }
+
