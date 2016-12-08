@@ -4,7 +4,7 @@
  */
 
 #define CALLSIGN "KK4VCZ-15"
-#define COMMENTS "4400 mAh 32U4"
+#define COMMENTS "mAh=4400 32U4"
 
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
@@ -145,21 +145,21 @@ long int uptime(){
 //Transmits one beacon and returns.
 void beacon(){
   static int packetnum=0;
+  float vcc=voltage();
   
   //Serial.println("Transmitting..."); // Send a message to rf95_server
   
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s %s VCC=%d.%d count=%d uptime=%ld",
+           "BEACON %s %s VCC=%d.%03d count=%d uptime=%ld",
            CALLSIGN,
            COMMENTS,
-           (int) voltage(),
-           (int) (voltage()*1000)%1000,
+           (int) vcc,
+           (int) (vcc*1000)%1000,
            packetnum,
            uptime());
 
-  //Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
   radiopacket[sizeof(radiopacket)] = 0;
   
   //Serial.println("Sending..."); delay(10);
@@ -204,6 +204,7 @@ void digipeat(){
     uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
     uint8_t len = sizeof(buf);
     int rssi=0;
+    float vcc=voltage();
     /*
      * When we receive a packet, we repeat it after a random
      * delay if:
@@ -227,12 +228,12 @@ void digipeat(){
         snprintf((char*) data,
                  RH_RF95_MAX_MESSAGE_LEN,
                  "%s\n" //First line is the original packet.
-                 "RT %s rssi=%d VCC=%d.%d uptime=%ld", //Then we append our call and strength as a repeater.
+                 "RT %s rssi=%d VCC=%d.%03d uptime=%ld", //Then we append our call and strength as a repeater.
                  (char*) buf,
                  CALLSIGN,  //Repeater's callsign.
                  (int) rssi, //Signal strength, for routing.
-                 (int) voltage(),
-                 (int) (voltage()*1000)%1000,
+                 (int) vcc,
+                 (int) (vcc*1000)%1000,
                  uptime()
                  );
         rf95.send(data, strlen((char*) data));
