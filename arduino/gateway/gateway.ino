@@ -44,6 +44,8 @@ void loop() {
   switch(mode) {
     case MODE_OFF: // turn radio on, probably
       if(voltage() < ONLY_CHARGE_VOLTAGE) {
+        radiooff();
+        sleepreset();
         mode = MODE_LOWBATT;
       } else {
         radioon();
@@ -120,8 +122,8 @@ void loop() {
       delay(20);
       break;
     case MODE_LOWBATT:
-      sleepreset();
       while(!sleep(LOWBATT_WAIT_PERIOD / 1000)) {}
+      sleepreset();
       break;
   }
 }
