@@ -121,7 +121,7 @@ void loop() {
       break;
     case MODE_LOWBATT:
       sleepreset();
-      until(sleep(LOWBATT_WAIT_PERIOD / 1000)) {}
+      while(!sleep(LOWBATT_WAIT_PERIOD / 1000)) {}
       break;
   }
 }
