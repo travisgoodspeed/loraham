@@ -151,15 +151,14 @@ void beacon(){
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s %s VCC=%d.%d count=%d uptime=%ld",
+           "BEACON %s %s VCC=%d.%03d count=%d uptime=%ld",
            CALLSIGN,
            COMMENTS,
-           (int) voltage(),
-           (int) (voltage()*1000)%1000,
+           (int) vcc,
+           (int) (vcc*1000)%1000,
            packetnum,
            uptime());
 
-  Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
   radiopacket[sizeof(radiopacket)] = 0;
   
   //Serial.println("Sending..."); delay(10);
