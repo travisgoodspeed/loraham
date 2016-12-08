@@ -109,15 +109,15 @@ void loop() {
       break;
     case MODE_XMIT_ONLY:
       if(sleep(BEACON_PERIOD_LOWBATT / 1000)) {
+#ifdef BEACON_PERIODIC
         beacon("Transmit only!");
         sleepreset();
+        radioon();
+        xmitstack();
+        radiooff();
+#endif
       }
       delay(20);
-#ifdef BEACON_PERIODIC
-      radioon();
-      xmitstack();
-      radiooff();
-#endif
       break;
     case MODE_LOWBATT:
       sleepreset();
