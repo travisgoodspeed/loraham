@@ -3,22 +3,23 @@
  *  
  */
 
-#define CALLSIGN "KK4VCZ-14"
+#define CALLSIGN "KK4VCZ-15"
+#define COMMENTS "4400 mAh 32U4"
 
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
  
-/* for feather32u4 
+/* for feather32u4 */
 #define RFM95_CS 8
 #define RFM95_RST 4
 #define RFM95_INT 7
 #define VBATPIN A9  /**/
  
-/* for feather m0  */
+/* for feather m0  
 #define RFM95_CS 8
 #define RFM95_RST 4
 #define RFM95_INT 3
-#define VBATPIN A7
+#define VBATPIN A7 /**/
  
 /* for shield 
 #define RFM95_CS 10
@@ -150,9 +151,11 @@ void beacon(){
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s VCC=%f count=%d uptime=%ld",
+           "BEACON %s %s VCC=%d.%d count=%d uptime=%ld",
            CALLSIGN,
-           (float) voltage(),
+           COMMENTS,
+           (int) voltage(),
+           (int) (voltage()*1000)%1000,
            packetnum,
            uptime());
 
@@ -166,7 +169,6 @@ void beacon(){
   rf95.waitPacketSent();
   packetnum++;
 }
-
 
 //Handles retransmission of the packet.
 bool shouldirt(uint8_t *buf, uint8_t len){
@@ -225,11 +227,12 @@ void digipeat(){
         snprintf((char*) data,
                  RH_RF95_MAX_MESSAGE_LEN,
                  "%s\n" //First line is the original packet.
-                 "RT %s rssi=%d VCC=%f uptime=%ld", //Then we append our call and strength as a repeater.
+                 "RT %s rssi=%d VCC=%d.%d uptime=%ld", //Then we append our call and strength as a repeater.
                  (char*) buf,
                  CALLSIGN,  //Repeater's callsign.
                  (int) rssi, //Signal strength, for routing.
-                 voltage(), //Repeater's voltage
+                 (int) voltage(),
+                 (int) (voltage()*1000)%1000,
                  uptime()
                  );
         rf95.send(data, strlen((char*) data));
