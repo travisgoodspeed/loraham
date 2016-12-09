@@ -62,10 +62,13 @@ bool sleep(unsigned int seconds) {
   }
   return false;
 #else
+  if (rtc.getEpoch() >= sleeptime + seconds) {
+    return true;
+  }
   rtc.setAlarmEpoch(sleeptime + seconds + 1); // + 1, to prevent race conditions just in case
-  rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
-  rtc.attachInterrupt(setwokebyrtc);
   wokebyrtc = false;
+  rtc.attachInterrupt(setwokebyrtc);
+  rtc.enableAlarm(rtc.MATCH_HHMMSS);
 #ifdef DEBUG_LED_RTC
   digitalWrite(LED, LOW);
 #endif
