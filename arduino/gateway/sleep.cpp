@@ -1,18 +1,17 @@
+
 #include <RTCZero.h>
+
+
 #include "config.h"
 #include "platforms.h"
 
-// we want to not deep sleep for this amount of time
-// or we risk not being able to use serial
-#define SAFETY_MILLIS 120000
-
 #ifdef RTC_ENABLED
 RTCZero rtc;
-
 bool wokebyrtc = false;
-#endif
-
+uint32_t sleeptime;
+#else
 int lastmillis;
+#endif
 
 void sleepsetup() {
 #ifdef RTC_ENABLED
@@ -25,6 +24,9 @@ void sleepsetup() {
   SYSCTRL->DFLLCTRL.bit.RUNSTDBY = 1;
 
   USBDevice.detach();
+
+  rtc.setY2kEpoch(0);
+  sleeptime = 0;
 #else
   lastmillis = millis();
 #endif
@@ -34,6 +36,10 @@ void sleepsetup() {
 void setwokebyrtc() {
   wokebyrtc = true;
 }
+
+uint16_t getepoch() {
+  return rtc.getY2kEpoch();
+}
 #endif
 
 void sleepreset() {
@@ -42,10 +48,7 @@ void sleepreset() {
   lastmillis = millis();
 #else
   // RTC
-  rtc.setTime(0,0,0);
-  /* yeah, this is kind of a hack at the moment. one day it could be
-   * cool to use the RTC to keep current time.
-   */
+  sleeptime = rtc.getEpoch();
 #endif
 }
 
@@ -59,12 +62,8 @@ bool sleep(unsigned int seconds) {
   }
   return false;
 #else
-  int h, m, s;
-  h = seconds / 3600;
-  m = (seconds - h * 3600) / 60;
-  s = seconds - h * 3600 - m * 60;
-  rtc.setAlarmTime(h, m, s);
-  rtc.enableAlarm(rtc.MATCH_HHMMSS);
+  rtc.setAlarmEpoch(sleeptime + seconds + 1); // + 1, to prevent race conditions just in case
+  rtc.enableAlarm(rtc.MATCH_YYMMDDHHMMSS);
   rtc.attachInterrupt(setwokebyrtc);
   wokebyrtc = false;
 #ifdef DEBUG_LED_RTC

@@ -7,6 +7,7 @@
 #include "config.h"
 #include "platforms.h"
 #include "utilities.h"
+#include "sleep.h"
 
 //Returns the battery voltage as a float.
 float voltage() {
@@ -19,6 +20,9 @@ float voltage() {
 
 //! Uptime in seconds, correcting for rollover.
 long int uptime() {
+#ifdef RTC_ENABLED
+  return getepoch();
+#else
   static unsigned long rollover = 0;
   static unsigned long lastmillis = millis();
 
@@ -29,6 +33,7 @@ long int uptime() {
   }
 
   return (rollover + (millis() >> 10));
+#endif
 }
 
 // returns true if supplied packet should be retransmitted
