@@ -3,11 +3,11 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-#define CALLSIGN "YOURCALL-1"
+//#define CALLSIGN "MYCALLSIGN-5"
 #define FEATHER_M0 // hardware type
 
-#if CALLSIGN == "YOURCALL-1"
-#error Change your callsign!
+#if !defined(CALLSIGN)
+#error Please set your callsign and node ID above!
 #endif
 
 // Change to 434.0 or other frequency, must match RX's freq!
