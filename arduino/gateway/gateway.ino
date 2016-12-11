@@ -42,8 +42,8 @@ void setup() {
 void loop() {
   // mode changes
   switch(mode) {
-    case MODE_OFF: // turn radio on, probably
-      if(voltage() < ONLY_CHARGE_VOLTAGE) {
+    case MODE_OFF:
+      if(voltage() < MIN_XMIT_VOLTAGE) {
         radiooff();
         sleepreset();
         mode = MODE_LOWBATT;
