@@ -28,7 +28,7 @@
 #define BEACON_PERIOD 60 * 10 * 1000 // ms
 #define BEACON_PERIOD_LOWBATT 60 * 20 * 1000 // ms
 
-#define LOWBATT_WAIT_PERIOD 60 * 1000 // ms
+#define LOWBATT_WAIT_PERIOD 60 * 20 * 1000 // ms
 
 // ring buffer size in packets
 #define BUFFER_PACKETS 10
@@ -37,9 +37,9 @@
 #define MAX_XMIT_WAIT 10000
 
 // minimum voltages for functions
-#define RADIO_CONTINUOUS_VOLTAGE 3.85  // hysteresis
+#define RADIO_CONTINUOUS_VOLTAGE 3.9  // hysteresis
 #define MIN_XMIT_VOLTAGE 3.75
-#define ONLY_CHARGE_VOLTAGE 3.6
+#define ONLY_CHARGE_VOLTAGE 3.65
 
 #endif // CONFIG_H_
 
