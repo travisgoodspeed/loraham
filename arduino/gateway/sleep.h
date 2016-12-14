@@ -3,8 +3,8 @@
 
 uint16_t getepoch();
 void sleepsetup();
-void sleepreset();
-bool sleep(unsigned int seconds);
+void sleepreset(char timerslot);
+bool sleep(unsigned int seconds, char timerslot);
 
 #endif // SLEEP_H_
 

@@ -4,7 +4,10 @@
 #include "platforms.h"
 
 #include "utilities.h"
+#include "sleep.h"
 #include "network.h"
+
+#define NETWORK_TIMERSLOT 1
 
 // power on/off status of radio
 bool radiostatus = false;
@@ -12,6 +15,7 @@ bool radiostatus = false;
 typedef struct {
   uint8_t data[RH_RF95_MAX_MESSAGE_LEN + 1];
   int rssi;
+  bool delay; // do we need to delay before sending this packet; is this packet digipeated?
 } Packet;
 
 
@@ -27,12 +31,13 @@ int8_t xmitbufi = -1;
 
 
 // queue a packet for transmission
-void queuepkt(uint8_t *buf) {
+void queuepkt(uint8_t *buf, bool delay) {
   if (xmitbufi < BUFFER_PACKETS - 1) {
     xmitbufi++;
   }
   strcpy((char*) xmitbuf[xmitbufi].data, (char*) buf);
   xmitbuf[xmitbufi].data[RH_RF95_MAX_MESSAGE_LEN] = 0; // just in case!
+  xmitbuf[xmitbufi].delay = delay;
 }
 
 void radiosetup()
@@ -59,7 +64,7 @@ void radioon() {
 
   while (!rf95.init()) {
     Serial.println("LoRa radio init failed");
-    while (1) { delay(10000); }
+    delay(10000);
   }
 
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
@@ -109,7 +114,7 @@ void beacon(char* msg) {
 
   radiopacket[RH_RF95_MAX_MESSAGE_LEN] = 0;
 
-  queuepkt((uint8_t*) radiopacket);
+  queuepkt((uint8_t*) radiopacket, false);
   packetnum++;
 }
 
@@ -132,7 +137,8 @@ bool recvpkt() {
 }
 
 // looks at all the packets in the recv buffer and takes appropriate action
-void handlepackets() {
+bool handlepackets() {
+  bool packethandled = false;
   for (int i = 0; i < BUFFER_PACKETS; i++) {
     if (strlen((char*) recvbuf[i].data) > 0) {
       if (shouldrt(recvbuf[i].data)) {
@@ -140,14 +146,15 @@ void handlepackets() {
       }
 
       memset(&recvbuf[i], 0, sizeof (Packet)); // handled
+      packethandled = true;
     }
   }
+  return packethandled;
 }
 
 // Add RT lines to recieved packet and queue it for transmission
 bool digipeat(uint8_t *pkt, int rssi) {
   uint8_t data[RH_RF95_MAX_MESSAGE_LEN + 2];
-  int r = random(MAX_XMIT_WAIT);
   snprintf((char*) data,
            RH_RF95_MAX_MESSAGE_LEN + 1,
            "%s\n" //First line is the original packet.
@@ -159,17 +166,21 @@ bool digipeat(uint8_t *pkt, int rssi) {
   if (strlen((char*) data) > RH_RF95_MAX_MESSAGE_LEN) {
     return false; // packet too long
   }
-  for (int n = 0; n < r / 10; n++) {
-    delay(10);
-    recvpkt();
-  }
-  queuepkt(data);
+  queuepkt(data, true);
   return true;
 }
 
 // transmits all the packets in the xmit stack, while receiving any that come in
 void xmitstack() {
+  int delaytime = random(MAX_XMIT_WAIT) + 10000; // add 10 seconds to prevent simple_gateway from throwing packets away
+  bool delayed = false;
   while (xmitbufi > -1) {
+    if (!delayed && xmitbuf[xmitbufi].delay) {
+      sleepreset(NETWORK_TIMERSLOT);
+      while (!sleep(delaytime / 1000, NETWORK_TIMERSLOT)) { recvpkt(); }
+      delay(delaytime % 1000);
+      delayed = true;
+    }
     while (recvpkt()) {}
     Serial.print("TX: ");
     Serial.println((char*) xmitbuf[xmitbufi].data);
