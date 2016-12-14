@@ -37,7 +37,7 @@ void setwokebyrtc() {
   wokebyrtc = true;
 }
 
-uint16_t getepoch() {
+uint32_t getepoch() {
   return rtc.getY2kEpoch();
 }
 #endif
@@ -79,7 +79,3 @@ bool sleep(unsigned int seconds) {
   return wokebyrtc;
 #endif
 }
-
-
-
-
