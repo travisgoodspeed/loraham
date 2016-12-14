@@ -1,17 +1,22 @@
 
 #include <RTCZero.h>
 
-
 #include "config.h"
 #include "platforms.h"
+
+#define TIMER_SLOTS 2
 
 #ifdef RTC_ENABLED
 RTCZero rtc;
 bool wokebyrtc = false;
-uint32_t sleeptime;
+uint32_t sleeptime[TIMER_SLOTS];
 #else
-int lastmillis;
+uint32_t lastmillis[TIMER_SLOTS];
 #endif
+
+// "Timerslots" are ways for us to keep track of multiple durations of time.
+// For example, we can use one timerslot for sleeping during a transmit cycle,
+// and not have to worry about it resetting the timer for the beacon
 
 void sleepsetup() {
 #ifdef RTC_ENABLED
@@ -26,9 +31,6 @@ void sleepsetup() {
   USBDevice.detach();
 
   rtc.setY2kEpoch(0);
-  sleeptime = 0;
-#else
-  lastmillis = millis();
 #endif
 }
 
@@ -42,30 +44,30 @@ uint32_t getepoch() {
 }
 #endif
 
-void sleepreset() {
+void sleepreset(char timerslot) {
 #ifndef RTC_ENABLED
   // no RTC
-  lastmillis = millis();
+  lastmillis[timerslot] = millis();
 #else
   // RTC
-  sleeptime = rtc.getEpoch();
+  sleeptime[timerslot] = rtc.getEpoch();
 #endif
 }
 
 // returns true when seconds is elapsed
 // returns false if we're not using RTC or if some other interrupt
 // woke up the processor
-bool sleep(unsigned int seconds) {
+bool sleep(unsigned int seconds, char timerslot) {
 #ifndef RTC_ENABLED
-  if (millis()-lastmillis > seconds * 1000) {
+  if (millis()-lastmillis[timerslot] > seconds * 1000) {
     return true;
   }
   return false;
 #else
-  if (rtc.getEpoch() >= sleeptime + seconds) {
+  if (rtc.getEpoch() >= sleeptime[timerslot] + seconds) {
     return true;
   }
-  rtc.setAlarmEpoch(sleeptime + seconds + 1); // + 1, to prevent race conditions just in case
+  rtc.setAlarmEpoch(sleeptime[timerslot] + seconds + 1); // + 1, to prevent race conditions just in case
   wokebyrtc = false;
   rtc.attachInterrupt(setwokebyrtc);
   rtc.enableAlarm(rtc.MATCH_HHMMSS);

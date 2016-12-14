@@ -7,7 +7,7 @@ void radioon();
 void radiooff();
 
 bool recvpkt();
-void handlepackets();
+bool handlepackets();
 bool digipeat(uint8_t *pkt, int rssi);
 void xmitstack();
 
