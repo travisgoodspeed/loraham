@@ -11,7 +11,8 @@ import urwid, serial;
 
 #FIXME Callsign and port are hardwired.  
 MYCALL = "KK4VCZ";
-ser = serial.Serial('/dev/ttyACM0');
+#ser = serial.Serial('/dev/ttyS0');
+ser = serial.Serial('/dev/ttyUSB0');
 
 SHOWALL=1;
 SHOWMINE=2;
@@ -40,10 +41,7 @@ def show_packets():
         received.set_text(verboselog);
 
 def on_packet_change(edit, new_edit_text):
-    global allpackets, top;
-    allpackets=allpackets+"\n"+new_edit_text
-    received.set_text(allpackets);
-    show_packets();
+    pass;
 
 #Is my callsign mentioned in the line?
 def ismentioned(line):
@@ -53,8 +51,9 @@ def ismentioned(line):
     return False;
     
 linestate=0;
+lastline="";
 def handle_line(line):
-    global allpackets, mypackets, verboselog, linestate;
+    global allpackets, mypackets, verboselog, linestate, lastline;
 
     #Verbose log has everything.
     verboselog=verboselog+line+'\n';
@@ -65,7 +64,8 @@ def handle_line(line):
         return;
 
     #First line is the real message.
-    if linestate==0:
+    if linestate==0 and line!=lastline:
+        lastline=line;
         allpackets=allpackets+line+"\n";
         if ismentioned(line):
             mypackets=mypackets+line+"\n";
@@ -73,9 +73,14 @@ def handle_line(line):
     
 def ser_available():
     global ser, allpackets;
-    newline=ser.readline().decode("utf-8").strip();
-    handle_line(newline);
-    show_packets();
+    try:
+        newline=ser.readline().decode("utf-8").strip();
+        handle_line(newline);
+        show_packets();
+    except:
+        handle_line("Data lost to UTF-8 corruption.");
+        show_packets();
+
 
 #Some globals for our state.
 allpackets="";
