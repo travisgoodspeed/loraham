@@ -9,8 +9,8 @@
 
 #define NETWORK_TIMERSLOT 1
 
-// power on/off status of radio
-bool radiostatus = false;
+// initialization status of radio
+bool radioisinit = false;
 
 typedef struct {
   uint8_t data[RH_RF95_MAX_MESSAGE_LEN + 1];
@@ -53,7 +53,8 @@ void radiosetup()
 
 
 void radioon() {
-  if(radiostatus == true) {
+  if(radioisinit == true) {
+    rf95.setModeRx();
     return;
   }
   // manual reset
@@ -84,17 +85,14 @@ void radioon() {
   Serial.println("Set power to 23.");
   Serial.print("Max packet length: "); Serial.println(RH_RF95_MAX_MESSAGE_LEN);
   rf95.setModeRx();
-  radiostatus = true;
+  radioisinit = true;
 }
 
 void radiooff() {
-  if(radiostatus == false) {
+  if(radioisinit == false) {
     return;
   }
-  // manual reset
-  digitalWrite(RFM95_RST, LOW);
-  delay(10);
-  radiostatus = false;
+  rf95.sleep();
 }
 
 // put a beacon packet in the queue
