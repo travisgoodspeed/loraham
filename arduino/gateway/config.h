@@ -4,12 +4,16 @@
 #define CONFIG_H_
 
 //#define CALLSIGN "MYCALLSIGN-5"
+//#define BANNER "SomeRadio solar digipeater mAh=1234"
 #define FEATHER_M0 // hardware type
 
 #if !defined(CALLSIGN)
 #error Please set your callsign and node ID above!
 #endif
 
+#if !defined(BANNER)
+#error Please set a banner
+#endif
 // Change to 434.0 or other frequency, must match RX's freq!
 #define RF95_FREQ 434.0
 

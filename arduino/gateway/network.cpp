@@ -102,8 +102,9 @@ void beacon(char* msg) {
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN+1];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s VCC=%f count=%d uptime=%ld%s%s",
+           "BEACON %s %s VCC=%f count=%d uptime=%ld%s%s",
            CALLSIGN,
+           BANNER,
            (float) voltage(),
            packetnum,
            uptime(),
