@@ -70,7 +70,7 @@ bool sleep(unsigned int seconds, char timerslot) {
   rtc.setAlarmEpoch(sleeptime[timerslot] + seconds + 1); // + 1, to prevent race conditions just in case
   wokebyrtc = false;
   rtc.attachInterrupt(setwokebyrtc);
-  rtc.enableAlarm(rtc.MATCH_HHMMSS);
+  rtc.enableAlarm(rtc.MATCH_MMSS); // if something goes wrong, recover in 1 hr
 #ifdef DEBUG_LED_RTC
   digitalWrite(LED, LOW);
 #endif
