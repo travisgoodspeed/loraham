@@ -5,6 +5,9 @@ LoRa on 70cm.  The code, the protocols, and the hardware have all been
 intentionally kept simple for easy experimentation, in the interest of
 getting folks to build things and to put their projects on the air.
 
+This project has only recently been made public; please join us in
+`#loraham` on Freenode if you'd like to play along.
+
 # Getting Started
 
 You will need to buy Adafruit M0 LoRa Feather boards, which can be
@@ -13,7 +16,6 @@ running the latest Arduino environment, with the Adafruit board
 definitions and the RadioHead radio library.
 
 http://www.airspayce.com/mikem/arduino/RadioHead/
-
 
 # Basics of the Protocol
 
@@ -71,3 +73,13 @@ second.
 
 # Hardware Designs
 
+See the Wiki at https://github.com/travisgoodspeed/loraham/wiki for
+our hardware reference designs.  In brief, we are simply powering
+Adafruit LoRa Feather 434MHz boards with solar-charging motion
+activated light boxes from which the lights have been torn out.
+
+# Active Networks
+
+The first LoRaHam network was born and raised in West Philadelphia, on
+the airwaves it passes packets each day.  Other networks are planned;
+please say Howdy in the IRC channel if you'd like to start one.
