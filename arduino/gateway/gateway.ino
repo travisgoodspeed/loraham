@@ -38,7 +38,6 @@ void setup() {
   sleepsetup();
 }
 
-
 void loop() {
   // mode changes
   switch(mode) {

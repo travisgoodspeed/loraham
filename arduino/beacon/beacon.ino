@@ -144,6 +144,7 @@ long int uptime(){
 //Transmits one beacon and returns.
 void beacon(){
   static int packetnum=0;
+  float vcc=voltage();
   
   //Serial.println("Transmitting..."); // Send a message to rf95_server
   
