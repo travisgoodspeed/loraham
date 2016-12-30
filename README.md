@@ -20,7 +20,7 @@ http://www.airspayce.com/mikem/arduino/RadioHead/
 # Basics of the Protocol
 
 A Beacon is just a transmitter, and nothing else.  It doesn't receive
-packets, but one every five or more minutes, it will transmit a quick
+packets, but once every five or more minutes, it will transmit a quick
 burst with a voltage, a sequence number, and maybe another sensor
 reading.  A beacon's packet is addressed to the callsign "BEACON" from
 its own callsign, which is followed by a suffix.  Comments can come
