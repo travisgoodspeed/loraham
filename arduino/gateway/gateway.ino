@@ -38,6 +38,22 @@ void setup() {
   sleepsetup();
 }
 
+bool handleserial() {
+  static char inputbuf[RH_RF95_MAX_MESSAGE_LEN + 1];
+  unsigned int len;
+  len = Serial.readBytesUntil('\n', inputbuf, RH_RF95_MAX_MESSAGE_LEN);
+  if (len == 0) { return false; }
+  if (inputbuf[len-1] == '\r') {
+    inputbuf[len-1] = 0;
+  } else {
+    inputbuf[len] = 0;
+  }
+  if (inputbuf[0] == 0) { return false; }
+  if (!strcasestr(inputbuf, CALLSIGN)) { return false; }  // don't xmit unless callsign is in message
+  queuepkt((uint8_t*) inputbuf, false);
+  return true;
+}
+
 void loop() {
   // mode changes
   switch(mode) {
@@ -93,7 +109,7 @@ void loop() {
   switch (mode) {
     case MODE_CONTINUOUS:
       recvpkt();
-      while(handlepackets()) {
+      while(handlepackets() || handleserial()) {
         xmitstack();
         recvpkt();
       }

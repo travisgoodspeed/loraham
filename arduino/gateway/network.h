@@ -6,6 +6,7 @@ void beacon(char* msg);
 void radioon();
 void radiooff();
 
+void queuepkt(uint8_t *buf, bool delay);
 bool recvpkt();
 bool handlepackets();
 bool digipeat(uint8_t *pkt, int rssi);
