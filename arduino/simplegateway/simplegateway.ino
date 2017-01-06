@@ -3,7 +3,9 @@
  *  
  */
 
-#define CALLSIGN "KK4VCZ-14"
+//Please change these two to describe your hardware.
+#define CALLSIGN "MYCALL-00"
+#define COMMENTS "Change this."
 
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
@@ -18,7 +20,10 @@
 #define RFM95_CS 8
 #define RFM95_RST 4
 #define RFM95_INT 3
-#define VBATPIN A7
+#define VBATPIN A7 /**/
+
+//Uncomment this line to use the UART instead of USB in M0.
+//#define Serial Serial1
  
 /* for shield 
 #define RFM95_CS 10
@@ -144,29 +149,29 @@ long int uptime(){
 //Transmits one beacon and returns.
 void beacon(){
   static int packetnum=0;
+  float vcc=voltage();
   
   //Serial.println("Transmitting..."); // Send a message to rf95_server
   
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s VCC=%f count=%d uptime=%ld",
+           "BEACON %s %s VCC=%d.%03d count=%d uptime=%ld",
            CALLSIGN,
-           (float) voltage(),
+           COMMENTS,
+           (int) vcc,
+           (int) (vcc*1000)%1000,
            packetnum,
            uptime());
 
-  Serial.print("TX "); Serial.print(packetnum); Serial.print(": "); Serial.println(radiopacket);
   radiopacket[sizeof(radiopacket)] = 0;
   
   //Serial.println("Sending..."); delay(10);
   rf95.send((uint8_t *)radiopacket, strlen((char*) radiopacket));
  
-  //Serial.println("Waiting for packet to complete..."); delay(10);
   rf95.waitPacketSent();
   packetnum++;
 }
-
 
 //Handles retransmission of the packet.
 bool shouldirt(uint8_t *buf, uint8_t len){
@@ -202,6 +207,7 @@ void digipeat(){
     uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
     uint8_t len = sizeof(buf);
     int rssi=0;
+    float vcc=voltage();
     /*
      * When we receive a packet, we repeat it after a random
      * delay if:
@@ -225,11 +231,12 @@ void digipeat(){
         snprintf((char*) data,
                  RH_RF95_MAX_MESSAGE_LEN,
                  "%s\n" //First line is the original packet.
-                 "RT %s rssi=%d VCC=%f uptime=%ld", //Then we append our call and strength as a repeater.
+                 "RT %s rssi=%d VCC=%d.%03d uptime=%ld", //Then we append our call and strength as a repeater.
                  (char*) buf,
                  CALLSIGN,  //Repeater's callsign.
                  (int) rssi, //Signal strength, for routing.
-                 voltage(), //Repeater's voltage
+                 (int) vcc,
+                 (int) (vcc*1000)%1000,
                  uptime()
                  );
         rf95.send(data, strlen((char*) data));
