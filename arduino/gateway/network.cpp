@@ -95,17 +95,18 @@ void radiooff() {
   rf95.sleep();
 }
 
-// put a beacon packet in the queue
+//! put a beacon packet in the queue
 void beacon(const char* msg) {
   static int packetnum = 0;
+  float vcc=voltage();
 
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN+1];
   snprintf(radiopacket,
            RH_RF95_MAX_MESSAGE_LEN,
-           "BEACON %s %s VCC=%f count=%d uptime=%ld%s%s",
+           "BEACON %s %s VCC=%d.%03d count=%d uptime=%ld%s%s",
            CALLSIGN,
            BANNER,
-           (float) voltage(),
+           (int) vcc, (int) (vcc*1000)%1000,
            packetnum,
            uptime(),
            msg[0] == 0 ? "" : " ",
@@ -117,7 +118,7 @@ void beacon(const char* msg) {
   packetnum++;
 }
 
-// if packet available, place it in the recv buffer
+//! if packet available, place it in the recv buffer
 bool recvpkt() {
   uint8_t len = RH_RF95_MAX_MESSAGE_LEN;
   bool packetrecieved = false;
