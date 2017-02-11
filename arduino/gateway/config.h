@@ -24,8 +24,8 @@
 // #define DEBUG_LED_XMIT
 #define DEBUG_LED_RTC
 
-// use RTC
-#define RTC_ENABLED
+// use RTC.  This helps power consumption, but totally bricks USB.
+//#define RTC_ENABLED
 
 // Periodic beacon enable
 #define BEACON_PERIODIC
