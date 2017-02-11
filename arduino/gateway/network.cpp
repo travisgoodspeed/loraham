@@ -127,10 +127,11 @@ bool recvpkt() {
     if (rf95.recv(recvbuf[recvbufi].data, &len)) {
       recvbuf[recvbufi].data[len] = 0;
       recvbuf[recvbufi].rssi = rf95.lastRssi();
-      Serial.print("RX ");
-      Serial.print(recvbuf[recvbufi].rssi);
-      Serial.print(": ");
       Serial.println((char*) recvbuf[recvbufi].data);
+      Serial.print("RX ");
+      Serial.print(CALLSIGN);
+      Serial.print(" rssi");
+      Serial.println(recvbuf[recvbufi].rssi);
       Serial.println();
       packetrecieved = true;
     }
