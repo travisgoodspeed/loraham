@@ -1,5 +1,6 @@
 
-#include <RTCZero.h>
+//Install this with the Library Manager, then include it with the menu item.
+#include <RTCZero.h> 
 
 #include "config.h"
 #include "platforms.h"

@@ -96,7 +96,7 @@ void radiooff() {
 }
 
 // put a beacon packet in the queue
-void beacon(char* msg) {
+void beacon(const char* msg) {
   static int packetnum = 0;
 
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN+1];
@@ -128,7 +128,9 @@ bool recvpkt() {
       recvbuf[recvbufi].rssi = rf95.lastRssi();
       Serial.print("RX ");
       Serial.print(recvbuf[recvbufi].rssi);
-      Serial.print(": "); Serial.println((char*) recvbuf[recvbufi].data);
+      Serial.print(": ");
+      Serial.println((char*) recvbuf[recvbufi].data);
+      Serial.println();
       packetrecieved = true;
     }
   }
@@ -183,6 +185,7 @@ void xmitstack() {
     while (recvpkt()) {}
     Serial.print("TX: ");
     Serial.println((char*) xmitbuf[xmitbufi].data);
+    Serial.println();
 #ifdef DEBUG_LED_XMIT
     digitalWrite(LED, HIGH);
 #endif
