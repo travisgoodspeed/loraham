@@ -128,7 +128,9 @@ bool recvpkt() {
       recvbuf[recvbufi].rssi = rf95.lastRssi();
       Serial.print("RX ");
       Serial.print(recvbuf[recvbufi].rssi);
-      Serial.print(": "); Serial.println((char*) recvbuf[recvbufi].data);
+      Serial.print(": ");
+      Serial.println((char*) recvbuf[recvbufi].data);
+      Serial.println();
       packetrecieved = true;
     }
   }
@@ -183,6 +185,7 @@ void xmitstack() {
     while (recvpkt()) {}
     Serial.print("TX: ");
     Serial.println((char*) xmitbuf[xmitbufi].data);
+    Serial.println();
 #ifdef DEBUG_LED_XMIT
     digitalWrite(LED, HIGH);
 #endif
