@@ -64,16 +64,16 @@ void radioon() {
   delay(10);
 
   while (!rf95.init()) {
-    Serial.println("LoRa radio init failed");
+    Serial.println("# LoRa radio init failed");
     delay(10000);
   }
 
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
   if (!rf95.setFrequency(RF95_FREQ)) {
-    Serial.println("setFrequency failed");
+    Serial.println("# setFrequency failed");
     //while (1);
   } else {
-    Serial.print("Set Freq to: "); Serial.println(RF95_FREQ);
+    Serial.print("# Set Freq to: "); Serial.println(RF95_FREQ);
   }
 
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
@@ -82,8 +82,8 @@ void radioon() {
   // If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then
   // you can set transmitter powers from 5 to 23 dBm:
   rf95.setTxPower(23, false);
-  Serial.println("Set power to 23.");
-  Serial.print("Max packet length: "); Serial.println(RH_RF95_MAX_MESSAGE_LEN);
+  Serial.println("# Set power to 23.");
+  Serial.print("# Max packet length: "); Serial.println(RH_RF95_MAX_MESSAGE_LEN);
   rf95.setModeRx();
   radioisinit = true;
 }
@@ -167,8 +167,10 @@ bool digipeat(uint8_t *pkt, int rssi) {
            rssi //Signal strength, for routing.
           );
   if (strlen((char*) data) > RH_RF95_MAX_MESSAGE_LEN) {
+    Serial.println("# Packet too long.\n");
     return false; // packet too long
   }
+  
   queuepkt(data, true);
   return true;
 }
@@ -185,7 +187,8 @@ void xmitstack() {
       delayed = true;
     }
     while (recvpkt()) {}
-    Serial.print("TX: ");
+    
+    //Serial.print("TX: ");
     Serial.println((char*) xmitbuf[xmitbufi].data);
     Serial.println();
 #ifdef DEBUG_LED_XMIT

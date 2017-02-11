@@ -38,6 +38,7 @@ long int uptime() {
 
 // returns true if supplied packet should be retransmitted
 bool shouldrt(uint8_t *buf) {
+#ifdef REPEATER_ENABLED
   //Don't RT any packet containing our own callsign.
   if (strcasestr((char*) buf, CALLSIGN)) {
     //Serial.println("I've already retransmitted this one.\n");
@@ -45,6 +46,10 @@ bool shouldrt(uint8_t *buf) {
   }
   //No objections.  RT it!
   return true;
+#else
+  //Repeater is disabled, so we RT nothing.
+  return false;
+#endif
 }
 
 #endif // UTILITIES_H_
