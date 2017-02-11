@@ -3,7 +3,7 @@
 
 */
 
-
+#include <stdint.h>
 #include <SPI.h>
 #include <RH_RF95.h>  //See http://www.airspayce.com/mikem/arduino/RadioHead/
 

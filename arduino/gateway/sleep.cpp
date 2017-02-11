@@ -1,13 +1,14 @@
 
-//Install this with the Library Manager, then include it with the menu item.
-#include <RTCZero.h> 
 
+#include <Arduino.h>
 #include "config.h"
 #include "platforms.h"
 
 #define TIMER_SLOTS 2
 
 #ifdef RTC_ENABLED
+//Install this with the Library Manager, then include it with the menu item.
+#include <RTCZero.h>
 RTCZero rtc;
 bool wokebyrtc = false;
 uint32_t sleeptime[TIMER_SLOTS];
