@@ -96,7 +96,7 @@ void radiooff() {
 }
 
 // put a beacon packet in the queue
-void beacon(char* msg) {
+void beacon(const char* msg) {
   static int packetnum = 0;
 
   char radiopacket[RH_RF95_MAX_MESSAGE_LEN+1];

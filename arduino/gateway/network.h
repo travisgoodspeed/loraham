@@ -2,7 +2,7 @@
 #define NETWORK_H_
 
 void radiosetup();
-void beacon(char* msg);
+void beacon(const char* msg);
 void radioon();
 void radiooff();
 
