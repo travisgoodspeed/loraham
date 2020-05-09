@@ -177,7 +177,7 @@ bool digipeat(uint8_t *pkt, int rssi) {
 
 // transmits all the packets in the xmit stack, while receiving any that come in
 void xmitstack() {
-  int delaytime = random(MAX_XMIT_WAIT) + 10000; // add 10 seconds to prevent simple_gateway from throwing packets away
+  int delaytime = random(MAX_XMIT_WAIT); // add 10 seconds to prevent simple_gateway from throwing packets away
   bool delayed = false;
   while (xmitbufi > -1) {
     if (!delayed && xmitbuf[xmitbufi].delay) {

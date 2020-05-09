@@ -4,12 +4,12 @@
 #define CONFIG_H_
 
 //Uncomment these and change them to match your hardware.
-//#define CALLSIGN "MYCALLSIGN-5"
-//#define BANNER "SomeRadio solar digipeater mAh=1234"
+//#define CALLSIGN "SETME-1"
+#define BANNER "1W HamShield"
 
 
 // Define your hardware type both here and in Toos/Board.
-#define FEATHER_M0
+#define HAMSHIELD
 
 
 #if !defined(CALLSIGN)
@@ -24,7 +24,7 @@
 
 // LED to use.
 // TODO Move this to platforms.h
-#define LED 13
+#define LED 1
 
 // LED debug options
 // #define DEBUG_LED_XMIT
@@ -46,7 +46,7 @@
 #define LOWBATT_WAIT_PERIOD (60 * 20 * 1000) // ms
 
 // ring buffer size in packets
-#define BUFFER_PACKETS 10
+#define BUFFER_PACKETS 1
 
 // max xmit wait - we'll wait between 0 and n milliseconds before transmitting to avoid collision
 #define MAX_XMIT_WAIT 10000

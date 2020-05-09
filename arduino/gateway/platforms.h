@@ -23,6 +23,11 @@
   #define RFM95_RST 9
   #define RFM95_INT 7
 
+#elif defined(HAMSHIELD)
+  #define RFM95_CS 10
+  #define RFM95_RST 3
+  #define RFM95_INT 2 
+
 // for ESP w/featherwing
 #elif defined(ESP_FEATHERWING)
   #define RFM95_CS  2    // "E"

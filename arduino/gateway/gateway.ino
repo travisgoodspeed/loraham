@@ -114,7 +114,8 @@ void loop() {
         recvpkt();
       }
 #ifdef BEACON_PERIODIC
-      if(sleep(BEACON_PERIOD / 1000, 0)) {
+//      if(sleep(BEACON_PERIOD / 1000, 0)) {
+      if(sleep(300, 0)) {
         beacon("");
         xmitstack();
         sleepreset(0);

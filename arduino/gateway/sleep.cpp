@@ -61,7 +61,7 @@ void sleepreset(char timerslot) {
 // woke up the processor
 bool sleep(unsigned int seconds, char timerslot) {
 #ifndef RTC_ENABLED
-  if (millis()-lastmillis[timerslot] > seconds * 1000) {
+  if ((millis()-lastmillis[timerslot]) / 1000 > seconds) {
     return true;
   }
   return false;
